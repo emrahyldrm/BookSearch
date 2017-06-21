@@ -8,9 +8,6 @@ public class Product {
     private String store = null;
     private String link = null;
 
-
-
-
     public Product(String name, String author, Double price, String store, String link)
     {
         this.name = name.trim().toLowerCase();
@@ -21,13 +18,9 @@ public class Product {
 
     }
 
-    public String getName() {
-        return name;
-    }
+    public String getName() {return name; }
 
-    public String getAuthor() {
-        return author;
-    }
+    public String getAuthor() { return author; }
 
     public Double getPrice() { return price; }
 
@@ -35,8 +28,5 @@ public class Product {
 
     public String getLink() { return link; }
 
-    public String toString()
-    {
-        return this.store + " - " + this.name + " - " + this.author + " - " + this.price;
-    }
+    public String toString() { return this.store + " - " + this.name + " - " + this.author + " - " + this.price; }
 }
