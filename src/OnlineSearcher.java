@@ -6,7 +6,6 @@ import org.jsoup.select.Elements;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 
@@ -36,7 +35,9 @@ public class OnlineSearcher {
                 String author = e.select("div[class=details]").first().select("a[class=who]").first().text();
                 String price = e.select("div[class=details]").select("span[class=price]").first().text().replace(',', '.').split(" ")[0];
                 String link = "http://www.dr.com.tr/" + e.select("div[class=details]").first().select("a[class=item-name]").first().attr("href");
-                products.add(new Product(name, author, Double.parseDouble(price), "D&R", link));
+                String publisher = e.select("div[class=details]").first().select("a[class=who mb10]").first().text();
+                String type = e.select("div[class=details]").first().select("p").first().text();
+                products.add(new Product(name, author, Double.parseDouble(price), "D&R", link, publisher, type));
             } catch (NullPointerException npe) {
                 continue;
             }
@@ -59,7 +60,8 @@ public class OnlineSearcher {
                 String author = e.select("span[itemprop=author]").first().select("span[itemprop=name]").text();
                 String price = e.select("div[class=price-new]").first().select("span[class=value]").first().text().replace(',', '.');
                 String link = e.select("a[itemprop=url]").first().attr("href");
-                products.add(new Product(name, author, Double.parseDouble(price), "Kitapyurdu", link));
+                String publisher = e.select("span[itemprop=publisher]").first().select("span[itemprop=name]").text();
+                products.add(new Product(name, author, Double.parseDouble(price), "Kitapyurdu", link, publisher, "No Info."));
             } catch (NullPointerException npe) {
                 continue;
             }
@@ -67,9 +69,9 @@ public class OnlineSearcher {
     }
 
 
-    private static void searchOnIdefix(String request) throws IOException{
+    private static void searchOnIdefix(String request) throws IOException {
         String url = "http://www.idefix.com/search?q=" + URLEncoder.encode(request, "utf-8");
-        Elements rawProducts =null;
+        Elements rawProducts = null;
         System.out.println(url);
         Document doc = Jsoup.connect(url).get();
         try {
@@ -82,16 +84,18 @@ public class OnlineSearcher {
                 String name = e.select("div[class=summary]").first().select("a[class=item-name]").first().text();
                 String author = e.select("a[class=who]").first().text();
                 String price = e.select("span[class=price]").first().text().replace(',', '.').split(" ")[0];
-               String link = "http://idefix.com" + e.select("a[class=item-name]").first().attr("href");
-                products.add(new Product(name, author, Double.parseDouble(price), "Idefix", link));
+                String link = "http://idefix.com" + e.select("a[class=item-name]").first().attr("href");
+                String type = e.select("div[class=summary]").first().select("p").text();
+                String publisher = e.select("div[class=summary]").first().select("a[class=who mb10]").text();
+                products.add(new Product(name, author, Double.parseDouble(price), "Idefix", link, publisher, type));
             } catch (NullPointerException npe) {
                 continue;
             }
         }
     }
 
-    public static ArrayList<Product> run(String bookname) throws IOException
-    {
+
+    public static ArrayList<Product> run(String bookname) throws IOException {
         products.clear();
         searchOnIdefix(bookname);
         searchOnKy(bookname);
@@ -102,12 +106,16 @@ public class OnlineSearcher {
                 return Double.compare(o1.getPrice(), o2.getPrice());
             }
         });
+        /*
         for (Product p : products)
             System.out.println(p);
+        */
+
         return products;
     }
 
-    public static void main(String [] args) throws IOException {
+    //test main method
+    public static void main(String[] args) throws IOException {
         run("deneme");
     }
 
