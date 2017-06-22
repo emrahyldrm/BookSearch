@@ -49,6 +49,12 @@ public class Utils {
     }
 
 
+    public static String createBoldString(String text) {
+
+        return text != null ? "<html><strong>"  + text + "</strong></html>" : "";
+    }
+
+
     public static DefaultTableModel createNonEditableTableModel(String [] columns){
         return new DefaultTableModel(columns, 0){
             public boolean isCellEditable(int row, int column){ return false; }
