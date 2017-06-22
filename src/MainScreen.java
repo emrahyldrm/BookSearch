@@ -2,8 +2,10 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
 
+import javax.rmi.CORBA.Util;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
@@ -28,30 +30,23 @@ public class MainScreen {
     private JCheckBox combineCheckBox;
     private JScrollPane tablePane;
     private JPanel boxPanel;
-    private String [] columns = {"Store", "Name", "Author", "Price", "Link"};
+    private String [] columns = {"Store", "Name", "Author", "Publisher", "Type", "Price", "Link"};
     private DefaultTableModel tableModel = null;
     private ActionListener actionListener = null;
     public MainScreen() {
 
-        if(! Utils.checkInternetConnection())
-        {
+        if(! Utils.checkInternetConnection()) {
             JOptionPane.showMessageDialog(null, "Check your internet connection");
             System.exit(404);
-
         }
-        actionListener = new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                search();
-            }
-        };
+        actionListener = e -> search();
 
         MouseListener mouseListener = new MouseListener() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 2) {
                     System.out.println(resultTable.getSelectedRow() + " clicked");
-                    Document link = Jsoup.parse((String)resultTable.getValueAt(resultTable.getSelectedRow(), 4));
+                    Document link = Jsoup.parse((String)resultTable.getValueAt(resultTable.getSelectedRow(), resultTable.getColumnCount() - 1 ));
                     Utils.openBrowser(link.select("a").first().attr("href"));
                 }
             }
@@ -91,10 +86,11 @@ public class MainScreen {
         resultTable.setBackground(new Color(195, 189, 180));
     }
 
+
     private void search() {
         target_name = bookNameField.getText().equals("") ? "deneme" : bookNameField.getText().trim();
         target_author = authorField.getText().equals("") ? "deneme" : authorField.getText().trim();
-        tableTitle.setText("Searching for book named \"" + target_name + "\"");
+        tableTitle.setText("Searching the book named \"" + target_name + "\"");
 
         new Thread(() -> {
             try {
@@ -113,12 +109,17 @@ public class MainScreen {
 
         for(Product p : ps){
             if (!combineCheckBox.isSelected() && p.getName().contains(target_name))
-                tableModel.addRow(new Object[]{p.getStore(), p.getName(), p.getAuthor(), p.getPrice() + " TL", Utils.createLink(p.getLink())});
+                tableModel.addRow(new Object[]{p.getStore(), p.getName(), p.getAuthor(), p.getPublisher(), p.getType(), Utils.createBoldString(p.getPrice() + " TL"), Utils.createLink(p.getLink())});
             else if(combineCheckBox.isSelected() && p.getName().contains(target_name) && p.getAuthor().contains(target_author))
-                tableModel.addRow(new Object[]{p.getStore(), p.getName(), p.getAuthor(), p.getPrice() + " TL", Utils.createLink(p.getLink())});
+                tableModel.addRow(new Object[]{p.getStore(), p.getName(), p.getAuthor(),p.getPublisher(), p.getType(), Utils.createBoldString(p.getPrice() + " TL"), Utils.createLink(p.getLink())});
         }
 
         resultTable.setModel(tableModel);
+        resultTable.getColumnModel().getColumn(0).setMaxWidth(75); // Store
+        resultTable.getColumnModel().getColumn(6).setMaxWidth(50); // Link
+        resultTable.getColumnModel().getColumn(5).setMaxWidth(75); // Price
+        tablePane.getVerticalScrollBar().setBackground(Color.GRAY);
+
         if (tableModel.getRowCount() == 0)
             tableTitle.setText("No results found..");
     }
@@ -126,5 +127,18 @@ public class MainScreen {
 
     public JPanel getPanelMain(){
         return panelMain;
+    }
+}
+
+class ImageRenderer extends DefaultTableCellRenderer {
+    JLabel lbl = new JLabel();
+
+    ImageIcon icon = new ImageIcon(getClass().getResource("sample.png"));
+
+    public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                                                   boolean hasFocus, int row, int column) {
+        lbl.setText((String) value);
+        lbl.setIcon(icon);
+        return lbl;
     }
 }
