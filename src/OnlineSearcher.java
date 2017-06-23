@@ -3,6 +3,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import javax.sound.midi.SysexMessage;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -95,11 +96,38 @@ public class OnlineSearcher {
     }
 
 
+    private static void searchOnHepsiburada(String request) throws IOException {
+        String url = "http://www.hepsiburada.com/ara?kategori=catalog01_60001501&q=" + URLEncoder.encode(request, "utf-8");
+        Elements rawProducts = null;
+        System.out.println(url);
+        Document doc = Jsoup.connect(url).get();
+        try {
+            rawProducts = doc.select("div[class=box product]");
+        } catch (NullPointerException npe) {
+            return;
+        }
+        for (Element e : rawProducts) {
+            try {
+                String name = e.select("h3[class=product-title title]").first().attr(  "title");
+                String author ="No Info";
+                String price = e.select("span[class=price product-price]").first().text().replace(',', '.').split(" ")[0];
+                String link = "http://hepsiburada.com" + e.select("a").first().attr("href");
+                String type = "No Info.";
+                String publisher = "No Info";
+                products.add(new Product(name, author, Double.parseDouble(price), "Hepsiburada", link, publisher, type));
+            } catch (NullPointerException npe) {
+                continue;
+            }
+        }
+    }
+
+
     public static ArrayList<Product> run(String bookname) throws IOException {
         products.clear();
         searchOnIdefix(bookname);
         searchOnKy(bookname);
         searchOnDr(bookname);
+        searchOnHepsiburada(bookname);
         Collections.sort(products, new Comparator<Product>() {
             @Override
             public int compare(Product o1, Product o2) {
@@ -116,7 +144,8 @@ public class OnlineSearcher {
 
     //test main method
     public static void main(String[] args) throws IOException {
-        run("deneme");
+        //run("deneme");
+        searchOnHepsiburada("cehennem");
     }
 
 }
