@@ -1,19 +1,16 @@
+import javafx.util.Pair;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
 
-import javax.rmi.CORBA.Util;
 import javax.swing.*;
-import javax.swing.border.TitledBorder;
-import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.JTableHeader;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.io.IOException;
-import java.net.*;
 import java.util.ArrayList;
-import java.util.Locale;
+import java.util.Collections;
 
 /**
  * Created by place on 20.06.2017.
@@ -30,24 +27,51 @@ public class MainScreen {
     private JCheckBox combineCheckBox;
     private JScrollPane tablePane;
     private JPanel boxPanel;
-    private String [] columns = {"Store", "Name", "Author", "Publisher", "Type", "Price", "Link"};
+    private JPanel cartPanel;
+    private JScrollPane cartScrollPane;
+    private JList cartList;
+
+    private String [] columns = {"Store", "Name", "Author", "Publisher", "Type", "Price", "Link", "Add2Cart"};
     private DefaultTableModel tableModel = null;
     private ActionListener actionListener = null;
+    private ArrayList<Pair<String, Double>> cart = null;
+    private ArrayList<Product> searchResults = null;
+
+    private final Integer linkColumn = 6;
+    private final Integer addCartColumn = 7;
+
+
     public MainScreen() {
 
         if(! Utils.checkInternetConnection()) {
             JOptionPane.showMessageDialog(null, "Check your internet connection");
             System.exit(404);
         }
+        initializeGuiComponents();
+        cart = new ArrayList<>();
+    }
+
+
+    private void initializeGuiComponents()
+    {
         actionListener = e -> search();
 
         MouseListener mouseListener = new MouseListener() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 2) {
-                    System.out.println(resultTable.getSelectedRow() + " clicked");
-                    Document link = Jsoup.parse((String)resultTable.getValueAt(resultTable.getSelectedRow(), resultTable.getColumnCount() - 1 ));
-                    Utils.openBrowser(link.select("a").first().attr("href"));
+                    System.out.println(resultTable.getSelectedRow() + " " + resultTable.getSelectedColumn() + " clicked");
+                    if(resultTable.getSelectedColumn() == linkColumn) {
+                        Document link = Jsoup.parse((String) resultTable.getValueAt(resultTable.getSelectedRow(), linkColumn));
+                        Utils.openBrowser(link.select("a").first().attr("href"));
+                    }
+                    else if(resultTable.getSelectedColumn() == addCartColumn) {
+                        String store = searchResults.get(resultTable.getSelectedRow()).getStore().toUpperCase();
+                        Double price =  searchResults.get(resultTable.getSelectedRow()).getPrice();
+                        add2Cart(new Pair<>(store, price));
+                        updateCart(cart);
+
+                    }
                 }
             }
 
@@ -94,8 +118,9 @@ public class MainScreen {
 
         new Thread(() -> {
             try {
-                ArrayList<Product> p = OnlineSearcher.run(target_name);
-                updateTable(p);
+                searchResults = OnlineSearcher.run(target_name + " " + target_author);
+                filterProducts();
+                updateTable(searchResults);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -103,42 +128,60 @@ public class MainScreen {
         }).start();
     }
 
+    private void filterProducts()
+    {
+        ArrayList<Product> tempPr = new ArrayList<>();
+
+        for(Product p : this.searchResults){
+            if (!combineCheckBox.isSelected() && p.getName().contains(target_name))
+                tempPr.add(p);
+            else if(combineCheckBox.isSelected() && p.getName().contains(target_name) && p.getAuthor().contains(target_author))
+                tempPr.add(p);
+        }
+        this.searchResults = tempPr;
+    }
 
     private void updateTable(ArrayList<Product> ps) {
         tableModel = Utils.createNonEditableTableModel(columns);
-
         for(Product p : ps){
-            if (!combineCheckBox.isSelected() && p.getName().contains(target_name))
-                tableModel.addRow(new Object[]{p.getStore(), p.getName(), p.getAuthor(), p.getPublisher(), p.getType(), Utils.createBoldString(p.getPrice() + " TL"), Utils.createLink(p.getLink())});
-            else if(combineCheckBox.isSelected() && p.getName().contains(target_name) && p.getAuthor().contains(target_author))
-                tableModel.addRow(new Object[]{p.getStore(), p.getName(), p.getAuthor(),p.getPublisher(), p.getType(), Utils.createBoldString(p.getPrice() + " TL"), Utils.createLink(p.getLink())});
+            tableModel.addRow(new Object[]{p.getStore(), p.getName(), p.getAuthor(), p.getPublisher(), p.getType(),
+                    Utils.createBoldString(p.getPrice() + " TL"), Utils.createLink(p.getLink()), Utils.createBoldString("ADD")});
         }
-
         resultTable.setModel(tableModel);
         resultTable.getColumnModel().getColumn(0).setMaxWidth(75); // Store
-        resultTable.getColumnModel().getColumn(6).setMaxWidth(50); // Link
-        resultTable.getColumnModel().getColumn(5).setMaxWidth(75); // Price
+        resultTable.getColumnModel().getColumn(5).setMaxWidth(75); // Link
+        resultTable.getColumnModel().getColumn(6).setMaxWidth(50); // Price
+        resultTable.getColumnModel().getColumn(7).setMaxWidth(50); // Add2Cart
         tablePane.getVerticalScrollBar().setBackground(Color.GRAY);
 
         if (tableModel.getRowCount() == 0)
             tableTitle.setText("No results found..");
     }
 
+    private void updateCart(ArrayList< Pair<String, Double> > items)
+    {
+        DefaultListModel model = new DefaultListModel();
+        for(Pair<String, Double> i : items)
+            model.addElement(i.getKey() + "\t\t: " + i.getValue());
+        this.cartList.setModel(model);
+    }
 
+    private void add2Cart(Pair<String, Double> item)
+    {
+        for (int i = 0; i < this.cart.size(); i++) {
+            if(cart.get(i).getKey().equals(item.getKey()))
+            {
+                Pair<String, Double> t = cart.get(i);
+                cart.remove(i);
+                cart.add(new Pair<>(t.getKey(), t.getValue() + item.getValue()));
+                Collections.sort(this.cart, (p1, p2) -> Double.compare(p1.getValue(), p2.getValue()));
+                return;
+            }
+        }
+        cart.add(item);
+        Collections.sort(this.cart, (p1, p2) -> Double.compare(p1.getValue(), p2.getValue()));
+    }
     public JPanel getPanelMain(){
         return panelMain;
-    }
-}
-
-class ImageRenderer extends DefaultTableCellRenderer {
-    JLabel lbl = new JLabel();
-
-    ImageIcon icon = new ImageIcon(getClass().getResource("sample.png"));
-
-    public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-                                                   boolean hasFocus, int row, int column) {
-        lbl.setText((String) value);
-        lbl.setIcon(icon);
-        return lbl;
     }
 }
