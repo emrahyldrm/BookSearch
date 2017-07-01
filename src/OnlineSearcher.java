@@ -24,10 +24,12 @@ public class OnlineSearcher {
         Elements rawProducts = null;
         String url = "http://www.dr.com.tr/search?q=" + URLEncoder.encode(request, "utf-8");
         System.out.println(url);
-        Document doc = Jsoup.connect(url).get();
         try {
+            Document doc = Jsoup.connect(url).get();
             rawProducts = doc.select(".list-cell");
         } catch (NullPointerException npe) {
+            return;
+        } catch (org.jsoup.HttpStatusException hse) {
             return;
         }
         for (Element e : rawProducts) {
@@ -49,12 +51,15 @@ public class OnlineSearcher {
         Elements rawProducts = null;
         String url = "http://www.kitapyurdu.com/index.php?route=product/search&filter_name=" + URLEncoder.encode(request, "utf-8");
         System.out.println(url);
-        Document doc = Jsoup.connect(url).get();
         try {
+            Document doc = Jsoup.connect(url).get();
             rawProducts = doc.select("div[id=product-table]").first().select("div[itemtype=http://schema.org/Book]");
         } catch (NullPointerException npe) {
             return;
+        } catch (org.jsoup.HttpStatusException hse) {
+            return;
         }
+
         for (Element e : rawProducts) {
             try {
                 String name = e.select("img[itemprop=image]").first().attr("alt");
@@ -74,10 +79,12 @@ public class OnlineSearcher {
         String url = "http://www.idefix.com/search?q=" + URLEncoder.encode(request, "utf-8");
         Elements rawProducts = null;
         System.out.println(url);
-        Document doc = Jsoup.connect(url).get();
         try {
+            Document doc = Jsoup.connect(url).get();
             rawProducts = doc.select("div[class=list-cell]");
         } catch (NullPointerException npe) {
+            return;
+        } catch (org.jsoup.HttpStatusException hse) {
             return;
         }
         for (Element e : rawProducts) {
@@ -100,10 +107,12 @@ public class OnlineSearcher {
         String url = "http://www.hepsiburada.com/ara?kategori=catalog01_60001501&q=" + URLEncoder.encode(request, "utf-8");
         Elements rawProducts = null;
         System.out.println(url);
-        Document doc = Jsoup.connect(url).get();
         try {
+            Document doc = Jsoup.connect(url).get();
             rawProducts = doc.select("div[class=box product]");
         } catch (NullPointerException npe) {
+            return;
+        } catch (org.jsoup.HttpStatusException hse) {
             return;
         }
         for (Element e : rawProducts) {
@@ -124,6 +133,7 @@ public class OnlineSearcher {
 
     public static ArrayList<Product> run(String bookname) throws IOException {
         products.clear();
+        System.out.println(products.size());
         searchOnIdefix(bookname);
         searchOnKy(bookname);
         searchOnDr(bookname);
